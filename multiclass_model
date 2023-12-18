@@ -1,0 +1,68 @@
+# setwd("C:/Users/danie/OneDrive/Documents/R Projects/cirrhosis")
+
+library(dplyr)
+library(tidyr)
+library(caret)
+library(nnet)
+library(corrr)
+
+## load data
+training <- read.csv('cirrhosis_train.csv')
+test <- read.csv('cirrhosis_test.csv')
+
+
+#explore data set
+has_na_rows <- any(!complete.cases(training))
+
+if (has_na_rows) {
+  cat("The data frame has NA rows.\n")
+} else {
+  cat("The data frame does not have any NA rows.\n")
+}
+
+summary(training)
+glimpse(training)
+
+hist(training$N_Days)
+hist(training$Stage)
+
+value_checked <- "Placebo"
+occurrence <- 100 * prop.table(table(training$Drug))[value_checked]
+print(occurrence)
+
+training <- training %>%
+  mutate(Drug = ifelse(Drug == "D-penicillamine", 1, ifelse(Drug == "Placebo", 2, Drug)))
+training$Drug <- as.integer(training$Drug)
+
+# training <- training %>%
+#   mutate(Status = ifelse(Status == "C", 1, ifelse(Status == "CL", 2, ifelse(Status == "D",3, Status))))
+# training$Status <- as.integer(training$Status)
+
+
+training <- select(training,c('Age','N_Days',
+                              'Drug','Stage','Status'))
+
+#data already seprated b/w training & test, fit it
+#!!!!!!!!!!! might need to change the type of model - data cleaned is okay
+model <- nnet::multinom(Status ~., data = training)
+
+# summarize model 
+summary(model)
+
+# change column Drug to fit numeric & select columns
+test <- test %>%
+  mutate(Drug = ifelse(Drug == "D-penicillamine", 1, ifelse(Drug == "Placebo", 2, Drug)))
+test$Drug <- as.integer(test$Drug)
+
+test <- select(test,c('Age','N_Days',
+                              'Drug','Stage'))
+
+# predictions
+predicted.classes <- model %>% predict(test)
+head(predicted.classes)
+
+# check accuracy
+mean(predicted.classes == test$)
+
+
+print(predicted.classes)
