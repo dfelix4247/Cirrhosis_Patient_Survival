@@ -2,16 +2,17 @@
 
 library(dplyr)
 library(tidyr)
-library(caret)
 library(nnet)
 library(corrr)
+library(survival) 
 
 ## load data
 training <- read.csv('cirrhosis_train.csv')
 test <- read.csv('cirrhosis_test.csv')
 
 
-#explore data set
+# explore data set
+# checking for any NAs
 has_na_rows <- any(!complete.cases(training))
 
 if (has_na_rows) {
@@ -26,43 +27,41 @@ glimpse(training)
 hist(training$N_Days)
 hist(training$Stage)
 
+# checking occurence of 'Placebo' value in Drug column 
 value_checked <- "Placebo"
 occurrence <- 100 * prop.table(table(training$Drug))[value_checked]
 print(occurrence)
 
+# change string values to be represented numerically
 training <- training %>%
   mutate(Drug = ifelse(Drug == "D-penicillamine", 1, ifelse(Drug == "Placebo", 2, Drug)))
 training$Drug <- as.integer(training$Drug)
-
-# training <- training %>%
-#   mutate(Status = ifelse(Status == "C", 1, ifelse(Status == "CL", 2, ifelse(Status == "D",3, Status))))
-# training$Status <- as.integer(training$Status)
 
 
 training <- select(training,c('Age','N_Days',
                               'Drug','Stage','Status'))
 
-#data already seprated b/w training & test, fit it
-#!!!!!!!!!!! might need to change the type of model - data cleaned is okay
-model <- nnet::multinom(Status ~., data = training)
-
-# summarize model 
-summary(model)
-
+# ------------------------------------------------------------------------------
 # change column Drug to fit numeric & select columns
 test <- test %>%
   mutate(Drug = ifelse(Drug == "D-penicillamine", 1, ifelse(Drug == "Placebo", 2, Drug)))
 test$Drug <- as.integer(test$Drug)
 
 test <- select(test,c('Age','N_Days',
-                              'Drug','Stage'))
+                      'Drug','Stage'))
 
-# predictions
-predicted.classes <- model %>% predict(test)
-head(predicted.classes)
+# ------------------------------------------------------------------------------
 
-# check accuracy
-mean(predicted.classes == test$)
+# cox proportional hazards regression model approach - using 'survival' package
+# explore model
+
+# should this be done prior to field selection? 
+mod.cir <- coxph(Surv(N_Days,Stage) ~Age + Drug + Status, data = training)
+
+# shows that the null hypothesis was not rejected, need to re-evaluate
+summary(mod.cir)
 
 
-print(predicted.classes)
+# refrences 
+# chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://socialsciences.mcmaster.ca/jfox/Books/Companion/appendices/Appendix-Cox-Regression.pdf
+
