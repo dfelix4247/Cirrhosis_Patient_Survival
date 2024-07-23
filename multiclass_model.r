@@ -1,5 +1,3 @@
-# setwd("C:/Users/danie/OneDrive/Documents/R Projects/cirrhosis")
-
 library(dplyr)
 library(tidyr)
 library(nnet)
